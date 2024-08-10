@@ -95,3 +95,7 @@ func (query *AndQuery) Depth() (int, error) {
 	// Remember this is another layer
 	return maxDepth + 1, nil
 }
+
+func (query *AndQuery) GetColumnName() (bool, string) {
+	return false, ""
+}

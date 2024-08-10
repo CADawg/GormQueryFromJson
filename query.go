@@ -15,6 +15,8 @@ func GetQueryType(id TypeIdentifier) BaseQuery {
 		return &StrictStringQuery{}
 	case TypeOr:
 		return &OrQuery{}
+	case TypeAnd:
+		return &AndQuery{}
 	default:
 		return nil
 	}
