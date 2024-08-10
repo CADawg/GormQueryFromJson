@@ -1,6 +1,7 @@
 package GormQueryFromJson
 
 import (
+	"fmt"
 	"github.com/goccy/go-json"
 	"gorm.io/gorm"
 )
@@ -43,7 +44,10 @@ const (
 	TypeString       TypeIdentifier = "string"
 	TypeStrictString TypeIdentifier = "strict_string"
 	TypeOr           TypeIdentifier = "or"
+	TypeAnd          TypeIdentifier = "and"
 )
+
+var ErrMaxDepth = fmt.Errorf("max depth exceeded")
 
 type AcceptableQueryTypes struct {
 	// ColumnName is the name of the column in the database

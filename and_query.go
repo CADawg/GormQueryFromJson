@@ -5,11 +5,11 @@ import (
 	"gorm.io/gorm"
 )
 
-type OrQuery struct {
+type AndQuery struct {
 	Queries []BaseQuery `json:"queries"`
 }
 
-func (query *OrQuery) UnmarshalJSON(data []byte) error {
+func (query *AndQuery) UnmarshalJSON(data []byte) error {
 	var dataJson []JSON
 
 	err := json.Unmarshal(data, &dataJson)
@@ -37,15 +37,15 @@ func (query *OrQuery) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (query *OrQuery) Query(database *gorm.DB) *gorm.DB {
+func (query *AndQuery) Query(database *gorm.DB) *gorm.DB {
 	if len(query.Queries) == 0 {
 		return database.Session(&gorm.Session{})
 	}
 
-	return database.Where(query.buildOrCondition(database))
+	return database.Where(query.buildAndCondition(database))
 }
 
-func (query *OrQuery) buildOrCondition(database *gorm.DB) *gorm.DB {
+func (query *AndQuery) buildAndCondition(database *gorm.DB) *gorm.DB {
 	var conditions []*gorm.DB
 
 	for _, q := range query.Queries {
@@ -54,19 +54,20 @@ func (query *OrQuery) buildOrCondition(database *gorm.DB) *gorm.DB {
 		conditions = append(conditions, q.Query(session))
 	}
 
-	orCondition := conditions[0] //nolint:nilaway
+	andCondition := conditions[0] //nolint:nilaway
+
 	for i := 1; i < len(conditions); i++ {
-		orCondition = orCondition.Or(conditions[i])
+		andCondition.Where(conditions[i])
 	}
 
-	return orCondition
+	return andCondition
 }
 
-func (query *OrQuery) Type() TypeIdentifier {
-	return TypeOr
+func (query *AndQuery) Type() TypeIdentifier {
+	return TypeAnd
 }
 
-func (query *OrQuery) ColumnUsages() []ColumnUsageInfo {
+func (query *AndQuery) ColumnUsages() []ColumnUsageInfo {
 	var columnUsages []ColumnUsageInfo
 
 	for _, q := range query.Queries {
@@ -76,28 +77,21 @@ func (query *OrQuery) ColumnUsages() []ColumnUsageInfo {
 	return columnUsages
 }
 
-func (query *OrQuery) Depth() (int, error) {
+func (query *AndQuery) Depth() (int, error) {
 	maxDepth := 0
 
 	for _, q := range query.Queries {
 		qDepth, err := q.Depth()
+
 		if err != nil {
 			return 0, err
 		}
 
-		if qDepth > maxDepth {
-			maxDepth = qDepth
-		}
-
-		if maxDepth >= MaxDepth {
+		if qDepth >= maxDepth {
 			return 0, ErrMaxDepth
 		}
 	}
 
 	// Remember this is another layer
 	return maxDepth + 1, nil
-}
-
-func (query *OrQuery) GetColumnName() (bool, string) {
-	return false, ""
 }
